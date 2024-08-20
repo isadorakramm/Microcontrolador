@@ -10,11 +10,33 @@ import ssl
 import adafruit_requests
 import os
 
+# URL do servidor Flask
+#url = "http://192.168.200.73:5000/upload"
+url = "http://192.168.200.64:5000/upload"
+
+#ssid = os.getenv('WIFI_SSID')
+#password = os.getenv('WIFI_PASSWORD')
+#ssid = "rolezinhos nova era"
+#password = "1234senha"
+ssid = "kramm2@148"
+password = "5134992001"
+
+
+# Configurando o botão (usando board.BOOT se for um pino específico)
+botao = digitalio.DigitalInOut(board.BOOT)  # Substitua BUTTONS pelo pino específico se necessário
+botao.direction = digitalio.Direction.INPUT
+botao.pull = digitalio.Pull.UP  # Usa o pull-up interno, botão conectado ao GND
+
+# Usando board.IO3 para RX, escolha outro pino para TX, como IO1 ou IO2 se estiverem disponíveis
+uart = busio.UART(tx=board.IO3, baudrate=9600)  # Modifique para os pinos corretos da sua conexão
+
+def imprimir_frase(frase):
+    # Cabeçalho, frase principal e espaços finais
+    msg = '\n\nPoetroid 2.0\n\n' + frase + "\n\n\n\n\n\n\n\n\n"
+    uart.write(msg.encode('utf-8'))  # Envia tudo em uma única operação
+
+
 def connect_to_wifi():
-    #ssid = os.getenv('WIFI_SSID')
-    #password = os.getenv('WIFI_PASSWORD')
-    ssid = "kramm2@148"
-    password = "5134992001"
     while not wifi.radio.connected:
         try:
             print("Conectando ao Wi-Fi...")
@@ -111,6 +133,10 @@ def init_camera():
     print("Câmera inicializada com sucesso!")
     return cam
 
+
+
+
+
 cam = init_camera()
 
 # Configuração do pool de soquetes e da sessão de requisições
@@ -119,17 +145,23 @@ pool = socketpool.SocketPool(wifi.radio)
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
 print("Configuração concluída!")
 
-# URL do servidor Flask
-url = "http://192.168.200.73:5000/upload"
+
+
 
 while True:
+    while botao.value:
+        time.sleep(0.1)
+        
     if not wifi.radio.connected:
         print("Reconectando ao Wi-Fi...")
         connect_to_wifi()
 
     print("Capturando imagem...")
+    
+    time.sleep(3)
     frame = cam.take(1)
     frame = cam.take(1)
+    
     if isinstance(frame, memoryview):
         jpeg = frame
         print(f"Captured {len(jpeg)} bytes of jpeg data")
@@ -147,6 +179,7 @@ while True:
             response = requests.post(url, data=encoded_data)
             print("Imagem enviada com sucesso.")
             print("Resposta do servidor:", response.text)
+            imprimir_frase(response.text)
         except Exception as e:
             print(f"Erro ao enviar a imagem: {e}")
             # Desconectar e reconectar a rede caso ocorra erro de envio
@@ -157,5 +190,3 @@ while True:
         # Reativar a câmera após enviar os dados
         print("Reativando a câmera após enviar os dados...")
         cam = init_camera()
-
-    time.sleep(10)
