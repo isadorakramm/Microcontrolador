@@ -10,17 +10,26 @@ import ssl
 import adafruit_requests
 import os
 
+
 # URL do servidor Flask
 #url = "http://192.168.200.73:5000/upload"
-url = "http://192.168.200.64:5000/upload"
+#url = "http://192.168.200.64:5000/upload"
+#url = "http://192.168.218.190:5000/upload"
+#url = "http://52.188.20.0:5000/upload"
+#url = "http://192.168.78.190:5000/upload"
+#url = "http://192.168.197.224:5000/upload"
+url = "http://192.168.172.224:5000/upload"
 
 #ssid = os.getenv('WIFI_SSID')
 #password = os.getenv('WIFI_PASSWORD')
+#ssid = os.getenv('SENAC VISITANTES')
+#password = os.getenv('trijuntos')
 #ssid = "rolezinhos nova era"
 #password = "1234senha"
-ssid = "kramm2@148"
-password = "5134992001"
-
+#ssid = "kramm2@148"
+#password = "5134992001"
+ssid = "kramm"
+password = "autoduster"
 
 # Configurando o botão (usando board.BOOT se for um pino específico)
 botao = digitalio.DigitalInOut(board.BOOT)  # Substitua BUTTONS pelo pino específico se necessário
@@ -32,7 +41,12 @@ uart = busio.UART(tx=board.IO3, baudrate=9600)  # Modifique para os pinos corret
 
 def imprimir_frase(frase):
     # Cabeçalho, frase principal e espaços finais
-    msg = '\n\nPoetroid 2.0\n\n' + frase + "\n\n\n\n\n\n\n\n\n"
+    msg = '\n\nPolaprint 2.0\n\n' + frase + "\n\n\n"
+    uart.write(msg.encode('utf-8'))  # Envia tudo em uma única operação
+
+def imprimir_log(frase):
+    # Cabeçalho, frase principal e espaços finais
+    msg = frase + "\n\n"
     uart.write(msg.encode('utf-8'))  # Envia tudo em uma única operação
 
 
@@ -40,8 +54,10 @@ def connect_to_wifi():
     while not wifi.radio.connected:
         try:
             print("Conectando ao Wi-Fi...")
+            imprimir_log("Conectando ao Wi-Fi...")
             wifi.radio.connect(ssid, password)
             print("Conectado ao Wi-Fi!")
+            imprimir_log("Conectado ao Wi-Fi!")
             print(f"IP address: {wifi.radio.ipv4_address}")
         except Exception as e:
             print(f"Erro ao conectar ao Wi-Fi: {e}")
@@ -49,9 +65,11 @@ def connect_to_wifi():
 
 connect_to_wifi()
 
+
 # Configuração da câmera
 def init_camera():
     print("Inicializando a câmera...")
+    imprimir_log("Inicializando a camera...")
     cam = espcamera.Camera(
         # Pinos
         data_pins=board.CAMERA_DATA,
@@ -131,6 +149,7 @@ def init_camera():
     #cam.night_mode = True  # Ativa o modo noturno
 
     print("Câmera inicializada com sucesso!")
+    imprimir_log("Camera inicializada com sucesso!\n\n")
     return cam
 
 
@@ -154,6 +173,7 @@ while True:
         
     if not wifi.radio.connected:
         print("Reconectando ao Wi-Fi...")
+        imprimir_log("Reconectando ao Wi-Fi...")
         connect_to_wifi()
 
     print("Capturando imagem...")
@@ -176,16 +196,20 @@ while True:
         # Enviar imagem para o servidor via HTTP POST
         try:
             print("Enviando imagem para o servidor...")
+            imprimir_log("Enviando imagem para o servidor...")
             response = requests.post(url, data=encoded_data)
             print("Imagem enviada com sucesso.")
             print("Resposta do servidor:", response.text)
             imprimir_frase(response.text)
+
         except Exception as e:
             print(f"Erro ao enviar a imagem: {e}")
             # Desconectar e reconectar a rede caso ocorra erro de envio
             wifi.radio.disconnect()
             time.sleep(5)
             connect_to_wifi()
+
+
 
         # Reativar a câmera após enviar os dados
         print("Reativando a câmera após enviar os dados...")
